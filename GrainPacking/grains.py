@@ -18,7 +18,7 @@ class solid() :
         self.Polygon = translate( self.Polygon, **kwargs )
 
     def rotate( self, **kwargs ) :
-        self.Polygon = rotate( self.Polygon, **kwargs )
+        self.Polygon = rotate( self.Polygon, origin = 'centroid', **kwargs )
 
     def get_center( self ) :
         # return mean( self.Polygon.exterior.xy, axis = 1 )
@@ -44,19 +44,21 @@ class solid() :
 #
 ############################
 
-def create_grain( npts = 8, radius = 1., center = (0.,0.), roughness = .2 ) :
+def create_grain( npts = 3, radius = 1., center = (0.,0.), roughness = 0. ) :
 
-    theta = sort( rand(npts)*2*pi )
-    r = ( 1 + roughness*rand( npts ) )/( 1 + roughness/2 )
-    shell = array(center).T + radius*array( [ cos(theta), sin(theta) ] ).T
+    theta = sort( linspace( 0, 2*pi, npts + 1 )[:-1] + roughness*2*pi/npts*rand( npts ) )
+    r = radius*( 1 + roughness*rand( npts ) )/( 1 + roughness/2 )
+    shell = array(center).T + array( [ r*cos(theta), r*sin(theta) ] ).T
 
-    return solid( shell = shell )
+    the_grain = solid( shell = shell )
+    the_grain.rotate( angle = rand()*360 )
+    return the_grain
 
-def create_box( size = (1,1), thickness = .5, center = ( 0., 0. ) ) :
+def create_box( size = (1,1), thickness = .3, center = ( 0., 0. ) ) :
 
     corners = [ [ -1, -1 ],  [ 1, -1 ], [ 1, 1 ], [-1, 1] ]
     hole = [ array( point ).T*.5*array(size).T + array( center ).T for point in corners ]
-    shell = [ array( point ).T*.5*( array(size).T*( 1 + thickness ) ) + array( center ).T for point in corners ]
+    shell = [ array( point ).T*.5*( array(size).T*( 1 + 2*thickness ) ) + array( center ).T for point in corners ]
 
     return solid( shell = shell, holes = [hole] )
 
@@ -86,37 +88,47 @@ def contact_Hamiltonian( solids ) :
 def gravity_Hamiltonian( solids, gravity = ( 0., -1. ) ) :
     return -sum( [ dot( the_solid.get_center(), gravity ) for the_solid in solids ] )
 
-def Glauber_step( box, grains, Hamiltonian, beta, dx, dtheta = 0, current_energy = None ) :
+def Glauber_step( box, grains, Hamiltonian, beta, dx, dtheta = 0, energy = None ) :
 
-    if current_energy is None :
-        current_energy = Hamiltonian( box, grains )
+    if energy is None :
+        energy = Hamiltonian( box, grains )
+
+    dangle = None
+    dz = None
 
     # pick a grain
     i = randrange( len(grains) )
 
-    # choose a step
-    dz = dx*rand()*exp( 1j*2*pi*rand() )
-
-    # move the grain
-    grains[i].translate( xoff = real(dz), yoff = imag(dz) )
-
-    # rotate the grain
+    # rotate the grain...
     if dtheta > 0 :
-        grains[i].rotate( angle = dtheta*( rand() - .5 ), use_radians = True )
+        if rand() > .5 :
+            dangle = dtheta*( rand() - .5 )*180/pi
+            grains[i].rotate( angle = dangle )
+
+    # ...or move the grain
+    if dangle is None :
+        dz = dx*rand()*exp( 1j*2*pi*rand() )
+        grains[i].translate( xoff = real(dz), yoff = imag(dz) )
 
     # calculate the energy cost
-    old_energy = current_energy
-    current_energy = Hamiltonian( box, grains )
-    dE = current_energy - old_energy
+    old_energy = energy
+    energy = Hamiltonian( box, grains )
+    dE = energy - old_energy
 
     # calculate probability
     p = exp( -beta*dE )/( 1 + exp( -beta*dE ) )
 
     if rand() < p : # keep
-        return grains, current_energy
+        return grains, energy
 
     else : # drop
-        grains[i].translate( xoff = -real(dz), yoff = -imag(dz) )
+
+        try :
+            grains[i].translate( xoff = -real(dz), yoff = -imag(dz) )
+
+        except :
+            grains[i].rotate( angle = -dangle )
+
         return grains, old_energy
 
 def plot_grains( grains, ax = None, labels = False, **kwargs ) :
@@ -140,41 +152,54 @@ def plot_grains( grains, ax = None, labels = False, **kwargs ) :
 
 if __name__ == '__main__':
 
+    fig_phys = figure()
     ax_phys = gca()
 
-    grain_radius = .1
+    npts = 3
+    grain_radius = 1/( 2*4*sin( 2*pi/npts )  )
+    epsilon = .1
 
     def Hamiltonian( box, grains ) :
-        return gravity_Hamiltonian( grains ) + 1e1/grain_radius**2*contact_Hamiltonian( [box] + grains )
+        return gravity_Hamiltonian( grains ) + 1/(epsilon*grain_radius**2)*contact_Hamiltonian( [box] + grains )
 
     box = create_box()
 
     grains = []
 
-    for _ in range(15) :
-        grains += [ create_grain( center = rand( 2 )-.5, radius = grain_radius ) ]
 
-    current_energy = Hamiltonian( box, grains )
+    for _ in range(7) :
+        grains += [ create_grain( npts = npts, center = .5*( rand( 2 ) -.5 ), radius = grain_radius ) ]
 
-    plot_grains( grains, ax = ax_phys, color = 'tab:orange', alpha = .2 )
-
-    E = []
-
-    for beta in linspace( 10, 100, 100*len(grains) ) :
-        dx = 2/beta
-        dtheta = 0*dx/grain_radius
-        E += [ current_energy ]
-        grains, current_energy = Glauber_step( box, grains, Hamiltonian, beta = beta, dx = dx, dtheta = dtheta, current_energy = current_energy )
+    energy = Hamiltonian( box, grains )
 
     box.plot(ax = ax_phys, color = 'grey')
-    plot_grains( grains, ax = ax_phys, color = 'tab:brown' )
+    plot_grains( grains, ax = ax_phys, color = 'tab:orange', alpha = .2 )
 
     ax_phys.axis('scaled')
     ax_phys.axis('off')
+    ax_phys.set_xticks([])
+    ax_phys.set_yticks([])
+
+    pause(.01)
+    show( block = False)
+    E = []
+
+    for beta in linspace( 5, 300, 2000*len(grains) ) :
+        dx = 2/beta
+        dtheta = epsilon*dx/grain_radius
+        E += [ energy ]
+        grains, energy = Glauber_step( box, grains, Hamiltonian, beta = beta, dx = dx, dtheta = dtheta, energy = energy )
+
+    plot_grains( grains, ax = ax_phys, color = 'tab:brown' )
+
 
     figure()
-    ax_e = gca()
 
-    ax_e.plot( E )
+    ax_e = gca()
+    ax_e.plot( arange(len(E))/len(grains), E )
+    ax_e.set_ylabel('Energy')
+    ax_e.set_xlabel('time')
+
+    fig_phys.savefig('./triangles.svg', bbox_inches = 'tight')
 
     show()
