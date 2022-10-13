@@ -184,9 +184,9 @@ if __name__ == '__main__':
     show( block = False)
     E = []
 
-    for beta in linspace( 5, 300, 2000*len(grains) ) :
-        dx = 2/beta
-        dtheta = epsilon*dx/grain_radius
+    for beta in linspace( 5, 100, 4000*len(grains) ) :
+        dx = 0.1*grain_radius#2/beta
+        dtheta = dx/grain_radius
         E += [ energy ]
         grains, energy = Glauber_step( box, grains, Hamiltonian, beta = beta, dx = dx, dtheta = dtheta, energy = energy )
 
