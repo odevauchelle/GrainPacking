@@ -1,8 +1,9 @@
 from pylab import *
 from matplotlib import gridspec
 import json
+# from multiprocessing import Pool
 
-sys.path.append('../')
+sys.path.append('/home/olivier/git/GrainPacking')
 import GrainPacking as GP
 
 ###################################
@@ -12,19 +13,19 @@ import GrainPacking as GP
 ###################################
 
 p = dict(
-    nb_grains = 10,
+    nb_grains = 15,
     grain = dict( npts = 7  )
     )
 
-p['grain']['radius'] = .1
+p['grain']['radius'] = .07
 p['epsilon'] = 0.1*p['grain']['radius']**2
-p['dx'] = 0.1*p['grain']['radius']
+p['dx'] = 0.2*p['grain']['radius']
 p['dtheta'] = p['dx']/p['grain']['radius']
-p['beta_range'] = [ 10, 1000 ]
+p['beta_range'] = [ 1, 1000 ]
 p['time_steps'] = 3000*p['nb_grains']
 phi = pi/4
 p['gravity'] = [ sin(phi), -cos(phi)  ]
-p['grain']['roughness'] = .8
+p['grain']['roughness'] = 1
 
 beta_list = linspace( *p['beta_range'], p['time_steps'] )
 
@@ -34,7 +35,6 @@ beta_list = linspace( *p['beta_range'], p['time_steps'] )
 #
 #############################
 
-
 def Hamiltonian( box, grains ) :
     return GP.gravity_Hamiltonian( grains, gravity = p['gravity'] ) + 1/(p['epsilon'])*GP.contact_Hamiltonian( [box] + grains )
 
@@ -43,7 +43,7 @@ box = GP.create_box()
 grains = []
 
 for _ in range(p['nb_grains']) :
-    grains += [ GP.create_grain( center = .5*( rand( 2 ) -.5 ), **p['grain'] ) ]
+    grains += [ GP.create_grain( center = .9*( rand( 2 ) -.5 ), **p['grain'] ) ]
 
 energy = Hamiltonian( box, grains )
 
@@ -111,7 +111,7 @@ for beta in beta_list :
     E += [ energy ]
     grains, energy = GP.Glauber_step( box, grains, Hamiltonian, beta = beta, dx = p['dx'], dtheta = p['dtheta'], energy = energy )
 
-    if i_plot%300 == 0 :
+    if i_plot%500 == 0 :
         i_plot = 0
         refresh_plots( E, grains )
 
