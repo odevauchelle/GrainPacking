@@ -23,15 +23,20 @@ class solid() :
         else : # use wkt_polygon
             self.Polygon = wkt.loads( wkt_polygon )
 
+        self.centroid = list( self.Polygon.centroid.coords[0] )
+
     def translate( self, **kwargs ) :
         self.Polygon = translate( self.Polygon, **kwargs )
+        self.centroid[0] += kwargs['xoff']
+        self.centroid[1] += kwargs['yoff']
 
     def rotate( self, **kwargs ) :
-        self.Polygon = rotate( self.Polygon, origin = 'centroid', **kwargs )
+        self.Polygon = rotate( self.Polygon, origin = self.centroid, **kwargs )
 
     def get_center( self ) :
         # return mean( self.Polygon.exterior.xy, axis = 1 )
-        return self.Polygon.centroid.coords[0]
+        # return self.Polygon.centroid.coords[0]
+        return self.centroid
 
     def dumps( self ) :
         return wkt.dumps( self.Polygon )
@@ -56,9 +61,6 @@ class solid() :
 # Functions
 #
 ############################
-#
-# def solid_loads( wkt_polygon ) :
-#     return solid( polygon = wkt.loads( wkt_polygon ) )
 
 def create_grain( npts = 3, radius = 1., center = (0.,0.), roughness = 0. ) :
 
@@ -176,7 +178,7 @@ if __name__ == '__main__':
     ax_phys = gca()
 
     npts = 3
-    grain_radius = 1/( 2*4*sin( 2*pi/npts )  )
+    grain_radius = 1/( 2*5*sin( 2*pi/npts )  )
     epsilon = .1
 
     def Hamiltonian( box, grains ) :
@@ -187,7 +189,7 @@ if __name__ == '__main__':
     grains = []
 
 
-    for _ in range(7) :
+    for _ in range(10) :
         grains += [ create_grain( npts = npts, center = .5*( rand( 2 ) -.5 ), radius = grain_radius ) ]
 
     energy = Hamiltonian( box, grains )
@@ -204,8 +206,9 @@ if __name__ == '__main__':
     show( block = False)
     E = []
 
-    for beta in linspace( 5, 100, 4000*len(grains) ) :
-        dx = 0.1*grain_radius#2/beta
+    for beta in linspace( 30, 3000, 1000*len(grains) ) :
+        
+        dx = 0.1*grain_radius
         dtheta = dx/grain_radius
         E += [ energy ]
         grains, energy = Glauber_step( box, grains, Hamiltonian, beta = beta, dx = dx, dtheta = dtheta, energy = energy )
