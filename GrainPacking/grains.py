@@ -207,7 +207,7 @@ if __name__ == '__main__':
     E = []
 
     for beta in linspace( 30, 3000, 1000*len(grains) ) :
-        
+
         dx = 0.1*grain_radius
         dtheta = dx/grain_radius
         E += [ energy ]
@@ -223,6 +223,6 @@ if __name__ == '__main__':
     ax_e.set_ylabel('Energy')
     ax_e.set_xlabel('time')
 
-    fig_phys.savefig('./triangles.svg', bbox_inches = 'tight')
+    # fig_phys.savefig('./triangles.svg', bbox_inches = 'tight')
 
     show()
