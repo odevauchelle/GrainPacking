@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon as mpl_Polygon
 from random import randrange
 from functools import reduce
 from itertools import combinations
@@ -45,6 +46,10 @@ class solid() :
     def dumps( self ) :
         return shp_wkt.dumps( self.Polygon )
         # return self.Polygon.wkt.dumps() later shapely version ?
+
+    def get_patch( self, **kwargs ) :
+        return mpl_Polygon( np.array( self.Polygon.exterior.xy ).T )
+
 
     def plot( self, ax = None, **kwargs ) :
 
