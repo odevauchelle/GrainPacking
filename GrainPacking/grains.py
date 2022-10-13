@@ -152,11 +152,15 @@ def plot_grains( grains, ax = None, labels = False, **kwargs ) :
     if ax is None :
         ax = gca()
 
+    graphs = []
+
     for i, the_grain in enumerate( grains ) :
-        the_grain.plot( ax = ax, **kwargs )
+        graphs += [ the_grain.plot( ax = ax, **kwargs )[0][0] ]
 
         if labels :
             text( *the_grain.get_center(), str(i), ha = 'center', va = 'center' )
+
+    return graphs
 
 
 
