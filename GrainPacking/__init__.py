@@ -18,14 +18,13 @@
 # Olivier Devauchelle
 
 """
-pyFreeFem
+GrainPacking
 """
 
 __author__ = "Olivier Devauchelle"
 __copyright__ = "Copyright 2022"
 __license__ = "GPL"
 __version__ = "0.0"
+__all__ = ['grains']
 
-__all__ = ['GrainPacking']
-
-from GrainPacking import *
+from .grains import *

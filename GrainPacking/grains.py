@@ -1,6 +1,7 @@
 from pylab import *
 from shapely.geometry import Polygon
 from shapely.affinity import translate, rotate
+from shapely import wkt
 from random import randrange
 
 #############################
@@ -11,8 +12,16 @@ from random import randrange
 
 class solid() :
 
-    def __init__( self, **kwargs ) :
-        self.Polygon = Polygon( **kwargs )
+    def __init__( self, polygon = None, wkt_polygon = None, **kwargs ) :
+
+        if polygon is None and wkt_polygon is None :
+            self.Polygon = Polygon( **kwargs )
+
+        elif wkt_polygon is None :
+            self.Polygon = polygon
+
+        else : # use wkt_polygon
+            self.Polygon = wkt.loads( wkt_polygon )
 
     def translate( self, **kwargs ) :
         self.Polygon = translate( self.Polygon, **kwargs )
@@ -23,6 +32,10 @@ class solid() :
     def get_center( self ) :
         # return mean( self.Polygon.exterior.xy, axis = 1 )
         return self.Polygon.centroid.coords[0]
+
+    def dumps( self ) :
+        return wkt.dumps( self.Polygon )
+        # return self.Polygon.wkt.dumps() later shapely version ?
 
     def plot( self, ax = None, **kwargs ) :
 
@@ -43,6 +56,9 @@ class solid() :
 # Functions
 #
 ############################
+#
+# def solid_loads( wkt_polygon ) :
+#     return solid( polygon = wkt.loads( wkt_polygon ) )
 
 def create_grain( npts = 3, radius = 1., center = (0.,0.), roughness = 0. ) :
 
