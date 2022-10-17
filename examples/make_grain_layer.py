@@ -13,7 +13,7 @@ import GrainPacking as GP
 ###################################
 
 p = dict(
-    nb_grains = 15,
+    nb_grains = 20,
     grain = dict( npts = 7  )
     )
 
@@ -35,17 +35,14 @@ beta_list = linspace( *p['beta_range'], p['time_steps'] )
 #
 #############################
 
-def Hamiltonian( box, grains ) :
-    return GP.gravity_Hamiltonian( grains, gravity = p['gravity'] ) + 1/(p['epsilon'])*GP.contact_Hamiltonian( [box] + grains )
-
-box = GP.create_box()
-
-grains = []
+s = GP.system()
+s.box = GP.create_box()
+s.grains = []
 
 for _ in range(p['nb_grains']) :
-    grains += [ GP.create_grain( center = .9*( rand( 2 ) -.5 ), **p['grain'] ) ]
+    s.grains += [ GP.create_grain( center = .9*( rand( 2 ) -.5 ), **p['grain'] ) ]
 
-energy = Hamiltonian( box, grains )
+s.set_generic_dH( gravity = p['gravity'], epsilon = p['epsilon'] )
 
 ###############################
 #
@@ -62,9 +59,9 @@ ax_phys = fig.add_subplot( gs[ :, 0])
 ax_e = fig.add_subplot( gs[ 1, 1])
 ax_temp = fig.add_subplot( gs[ 0, 1], sharex = ax_e )
 
-box.plot(ax = ax_phys, color = 'grey')
+s.plot_box(ax = ax_phys, color = 'grey')
 ax_phys.plot( *array([(0,0), p['gravity']]).T, '--k', alpha = .1 )
-GP.plot_grains( grains, ax = ax_phys, color = 'tab:orange', alpha = .2 )
+s.plot_grains( ax = ax_phys, color = 'tab:orange', alpha = .2 )
 
 ax_phys.axis('scaled')
 ax_phys.axis('off')
@@ -72,26 +69,25 @@ ax_phys.set_xticks([])
 ax_phys.set_yticks([])
 ax_e.set_ylabel('Energy')
 ax_e.set_xlabel('Time')
-ax_e.set_xlim( 0, p['time_steps']/len(grains) )
+ax_e.set_xlim( 0, p['time_steps']/len(s.grains) )
 
 ax_temp.set_ylabel(r'Temperature $1/\beta$')
 ax_temp.set_yscale('log')
 ax_temp.plot( arange(p['time_steps'])/p['nb_grains'], 1/beta_list, 'tab:green'  )
 
 E = []
-e_graph, = ax_e.plot( arange(len(E))/len(grains), E )
-g_graphs = GP.plot_grains( grains, ax = ax_phys, color = 'tab:brown' )
+time_E = []
+e_graph, = ax_e.plot( time_E, E )
+g_graphs = s.plot_grains( ax = ax_phys, color = 'tab:brown' )
 
 pause(.01)
 show( block = False)
 
-i_plot = 0
+def refresh_plots( time_E, E, grains ) :
 
-def refresh_plots( E, grains ) :
-
-    e_graph.set_data( arange(len(E))/len(grains), E )
+    e_graph.set_data( time_E, E )
     ax_e.relim()
-    ax_e.autoscale_view( scalex= False)
+    ax_e.autoscale_view( scalex = False  )
 
     for i, grain in enumerate(grains) :
         g_graphs[i].set_data( *grain.Polygon.exterior.xy )
@@ -104,19 +100,25 @@ def refresh_plots( E, grains ) :
 #
 ###############################
 
+i = 0
 
 for beta in beta_list :
 
-    i_plot += 1
-    E += [ energy ]
-    grains, energy = GP.Glauber_step( box, grains, Hamiltonian, beta = beta, dx = p['dx'], dtheta = p['dtheta'], energy = energy )
+    i += 1
+    s.Glauber_step( beta = beta, dx = p['dx'], dtheta = p['dtheta'] )
 
-    if i_plot%500 == 0 :
-        i_plot = 0
-        refresh_plots( E, grains )
+    if i%500 == 0 :
 
+        E += [ s.get_energy() ]
+        time_E += [ i/len(s.grains) ]
+        refresh_plots( time_E, E, s.grains )
 
-refresh_plots( E, grains )
+E += [ s.get_energy() ]
+time_E += [ i ]
+
+refresh_plots( time_E, E, s.grains )
+
+show()
 
 ###############################
 #
@@ -127,8 +129,8 @@ refresh_plots( E, grains )
 data_file = './grains.json'
 
 data = dict( parameters = p )
-data['box'] = box.dumps()
-data['grains'] = [ grain.dumps() for grain in grains ]
+data['box'] = s.box.dumps()
+data['grains'] = [ grain.dumps() for grain in s.grains ]
 
 if input('Save as ' + data_file + '?' ) in ( '', 'y' ) :
 
