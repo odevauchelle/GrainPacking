@@ -114,13 +114,17 @@ class system() :
     def plot_box( self, **kwargs ) :
         return self.box.plot( **kwargs )
 
-    def Glauber_step( self, beta, dx, dtheta = 0. ) :
+    def pick_grain_index( self ) :
+        return randrange( len(  self.grains ) )
+
+    def Glauber_step( self, beta, dx, dtheta = 0., i = None ) :
 
         dangle = None
         dz = None
 
         # pick a grain
-        i = randrange( len(  self.grains ) )
+        if i is None :
+            i = self.pick_grain_index()
 
         # calculate its local Energy
         dE = self.dH( i )
@@ -207,8 +211,6 @@ def plot_grains( grains, ax = None, labels = False, **kwargs ) :
             ax.text( *the_grain.centroid, str(i), ha = 'center', va = 'center' )
 
     return graphs
-
-
 
 ############################
 #
