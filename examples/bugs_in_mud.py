@@ -13,19 +13,19 @@ import GrainPacking as GP
 ###################################
 
 p = dict(
-    nb_grains = 5,
-    grain = dict( npts = 4  )
+    nb_grains = 35,
+    grain = dict( npts = 6  )
     )
 
 p['grain']['radius'] = .07
 p['epsilon'] = 0.1*p['grain']['radius']**2
 p['dx'] = 0.2*p['grain']['radius']
 p['dtheta'] = p['dx']/p['grain']['radius']
-p['beta_range'] = [ 10, 100 ]
-p['time_steps'] = 3000*p['nb_grains']
+p['beta_range'] = [ 100, 1000 ]
+p['time_steps'] = 1000*p['nb_grains']
 phi = 0
 p['gravity'] = [ sin(phi), -cos(phi)  ]
-p['grain']['roughness'] = 1
+p['grain']['roughness'] = .8
 
 beta_list = linspace( *p['beta_range'], p['time_steps'] )
 
