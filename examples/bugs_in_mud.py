@@ -21,10 +21,10 @@ p['grain']['radius'] = .07
 p['epsilon'] = 0.1*p['grain']['radius']**2
 p['dx'] = 0.2*p['grain']['radius']
 p['dtheta'] = p['dx']/p['grain']['radius']
-p['beta_range'] = [ 100, 1000 ]
-p['time_steps'] = 1000*p['nb_grains']
+p['beta_range'] = [ 30, 1000 ]
+p['time_steps'] = 3000*p['nb_grains']
 phi = 0
-p['gravity'] = [ sin(phi), -cos(phi)  ]
+# p['gravity'] = [ sin(phi), -cos(phi)  ]
 p['grain']['roughness'] = .8
 
 beta_list = linspace( *p['beta_range'], p['time_steps'] )
@@ -42,7 +42,12 @@ s.grains = []
 for _ in range(p['nb_grains']) :
     s.grains += [ GP.create_grain( center = .9*( rand( 2 ) -.5 ), **p['grain'] ) ]
 
-s.set_generic_dH( gravity = p['gravity'], epsilon = p['epsilon'] )
+# s.set_generic_dH( gravity = p['gravity'], epsilon = p['epsilon'] )
+
+def diff_Hamiltonian( box, grains, index ) :
+    return 1/p['epsilon']*GP.diff_contact_Hamiltonian( [box] + grains, index + 1 ) + grains[ index ].centroid[1]**2
+
+s.set_dH( diff_Hamiltonian )
 
 ###############################
 #
@@ -60,7 +65,7 @@ ax_e = fig.add_subplot( gs[ 1, 1])
 ax_temp = fig.add_subplot( gs[ 0, 1], sharex = ax_e )
 
 s.plot_box(ax = ax_phys, color = 'grey')
-ax_phys.plot( *array([(0,0), p['gravity']]).T, '--k', alpha = .1 )
+# ax_phys.plot( *array([(0,0), p['gravity']]).T, '--k', alpha = .1 )
 s.plot_grains( ax = ax_phys, color = 'tab:orange', alpha = .2 )
 
 ax_phys.axis('scaled')
